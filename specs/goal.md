@@ -1,0 +1,1 @@
+LocalScript: A Local Agent System for Generating Lua Code (MWS Octapi Platform) Develop an autonomous agent system on a local (lightweight) LLM that generates and validates Lua code without sending data to external services.
