@@ -8,7 +8,11 @@ LocalScript is a fully local agent system that generates, validates, and iterate
 
 ## Context: Where Lua Fits in Octapi
 
-In Octapi's Event Mesh, data flows through a 4-step pipeline: receive → standardize → buffer (Kafka) → filter/transform. The filter/transform step executes custom logic — this is where **Lua scripts** live. They handle:
+Octapi is a centralized integration platform with two layers: **Control Plane** (design) and **Data Plane** (runtime). The low-code pipeline engine is **Temporal** (primitives, connectors, workers on Kubernetes). For high-throughput streaming, **Apache Flink** handles data processing. All integrations — regardless of how they are authored (JSON, diagrams, GUI, or AI chat) — converge to a unified JSON format called **W2LCODE**.
+
+~95% of integrations are covered by the low-code platform. **Lua scripts target the remaining ~5%** — cases requiring complex custom logic that low-code primitives cannot express.
+
+In the Event Mesh data path, data flows through a 4-step pipeline: receive → standardize → buffer (Kafka) → filter/transform. The filter/transform step executes custom logic — this is where **Lua scripts** live. They handle:
 
 - **Transformations** — reshaping payloads (JSON↔XML, field mapping, enrichment)
 - **Filters** — selecting messages by attributes (region, type, metadata)
@@ -16,6 +20,10 @@ In Octapi's Event Mesh, data flows through a 4-step pipeline: receive → standa
 - **Validators** — checking message schema/integrity before forwarding
 
 These scripts are referenced by the manifest and executed by adapters at runtime on Apache Flink.
+
+### Relationship to Octapi's AI Integration Builder
+
+Octapi already includes an **AI Integration Builder** — a cloud-based agent that constructs integrations from natural-language descriptions, searches APIs/docs via semantic search, and outputs ready-to-deploy pipelines. **LocalScript is complementary**: it is fully offline, targets specifically Lua code generation (not full pipeline assembly), and is designed for environments where data must not leave the developer's machine.
 
 ---
 
@@ -175,13 +183,24 @@ localscript/
 These items are blocked until the Octapi Lua API specification is available:
 
 - Exact list of built-in Lua functions available in the sandbox
-- Manifest format for referencing Lua scripts
+- Manifest format for referencing Lua scripts (and how they integrate with W2LCODE JSON)
 - Input/output data envelope structure (headers, payload shape)
 - Available libraries (cjson, xml2lua, etc.) and their versions
 - Error handling conventions (return codes vs. exceptions)
 - Constraints: max script size, execution timeout, memory limits
+- How Lua scripts interact with Temporal workflow primitives and connectors
 
 Once the API spec arrives, these unknowns will directly shape the **Context Provider data** and the **Validator's schema checks**.
+
+---
+
+## Deployment Pipeline Context
+
+Octapi uses a multi-stage environment pipeline for integration delivery:
+
+**DevProd → TestProd → UATProd → LoadProd → ProdProd**
+
+Each stage includes access control, policies, and production-safety mechanisms. Generated Lua scripts will follow this same pipeline — LocalScript's validator acts as a **pre-DevProd gate**, catching errors before code enters the formal promotion chain.
 
 ---
 
