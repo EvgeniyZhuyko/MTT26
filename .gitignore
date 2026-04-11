@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.gguf
+*.safetensors
+.env
+*.ipynb_checkpoints/
+training/checkpoints/
+training/merged/
+data/raw/*.txt

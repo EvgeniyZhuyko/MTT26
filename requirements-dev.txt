@@ -1,0 +1,3 @@
+-r requirements.txt
+pytest>=8.0
+openai>=1.0        # for data/generate_data.py auto mode (OPENAI_API_KEY required)

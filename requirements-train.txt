@@ -1,0 +1,9 @@
+# Install on Linux CUDA machine or Google Colab only.
+# Do NOT install on macOS ARM — Unsloth requires CUDA.
+unsloth
+torch
+transformers
+datasets
+peft
+trl
+bitsandbytes
