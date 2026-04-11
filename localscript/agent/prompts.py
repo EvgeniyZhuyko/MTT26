@@ -46,24 +46,22 @@ def analyst_prompt() -> tuple[str, str]:
 
 # ── Generator ──────────────────────────────────────────────────────────────────
 
+# This text must match the `instruction` field used in training data exactly.
+# The model is a completion model — deviating from the training format causes
+# it to generate text continuations instead of Lua code.
 _GENERATOR_SYSTEM = """\
 [ROLE: generator]
 
-You generate Lua code for the Octapi LowCode platform.
+Octapi Lua Sandbox:
+- Lua 5.x. Variables: wf.vars.* or wf.initVariables.*
+- New array: _utils.array.new(). Mark array: _utils.array.markAsArray(t)
+- Forbidden: require(), io.*, os.*, JsonPath syntax
+- Declare all variables with `local`. End with `return`.
+Output ONLY raw Lua. No fences, no explanation."""
 
-{api_doc}
-
-Output rules:
-- Output ONLY the raw Lua code. No markdown fences, no explanation, no comments.
-- All variables must be declared with `local`.
-- The script must end with `return <value>`.
-- Use `_utils.array.new()` when building a result array.
-- Access variables via wf.vars.* or wf.initVariables.* only.
-"""
 
 def generator_prompt() -> tuple[str, str]:
-    system = _GENERATOR_SYSTEM.format(api_doc=_API_DOC)
-    return system, ""
+    return _GENERATOR_SYSTEM, ""
 
 
 # ── Critic ─────────────────────────────────────────────────────────────────────

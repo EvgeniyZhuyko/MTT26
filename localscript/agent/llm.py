@@ -35,10 +35,16 @@ def generate(
         requests.HTTPError: On non-2xx response from Ollama.
         requests.ConnectionError: If Ollama is not running.
     """
+    # The model is a plain completion model trained on:
+    #   {instruction}\n\n{input}\n{output}
+    # Passing `system` separately makes Ollama format the prompt differently,
+    # causing the model to generate text continuations instead of code.
+    # Build one flat string matching the training format exactly.
+    full_prompt = f"{system}\n\n{prompt}\n"
+
     payload = {
         "model": model,
-        "prompt": prompt,
-        "system": system,
+        "prompt": full_prompt,
         "stream": False,
         "options": {
             "num_ctx": num_ctx,
