@@ -1,0 +1,33 @@
+services:
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    # Remove the `deploy` block if you don't have an NVIDIA GPU.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  agent:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    volumes:
+      # Provides the GGUF file to the entrypoint for model registration.
+      - ./training:/app/training:ro
+    depends_on:
+      - ollama
+    restart: on-failure
+
+volumes:
+  ollama_data:

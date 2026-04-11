@@ -1,28 +1,98 @@
 #!/usr/bin/env python3
 """
-QLoRA fine-tuning for LocalScript using Unsloth + SFTTrainer.
+QLoRA fine-tuning for LocalScript using nuprl/MultiPLCoder-1b.
 
-Trains Qwen/Qwen2.5-Coder-7B-Instruct on the combined JSONL dataset
-(generator + analyst + critic roles) with 4-bit quantisation.
+MultiPLCoder-1b is a GPT-BigCode (StarCoder) base completion model — no chat
+template.  Training data is formatted as plain-text completion so the layout
+matches what Ollama sends at inference time:
+
+    {system_prompt}\n\n{user_prompt}\n{lua_output}<eos>
+
+Unsloth is tried first for speed; if the architecture is unsupported it falls
+back to standard HuggingFace PEFT automatically.
 
 Requirements:
   pip install -r requirements-train.txt
-  CUDA GPU with ≥16 GB VRAM recommended (tested on A100/T4 in Colab).
+  CUDA GPU with ≥8 GB VRAM (1B model fits comfortably).
 
 Usage:
   python training/train.py
-  python training/train.py --dataset data/train.jsonl --epochs 3 --output training/checkpoints
+  python training/train.py --dataset data/train.jsonl --epochs 3
 """
 
 import argparse
+import json
 from pathlib import Path
 
 # ── Defaults ───────────────────────────────────────────────────────────────────
 
-BASE_MODEL   = "Qwen/Qwen2.5-Coder-7B-Instruct"
+BASE_MODEL   = "nuprl/MultiPLCoder-1b"
 DATASET_PATH = "data/train.jsonl"
 OUTPUT_DIR   = "training/checkpoints"
-MAX_SEQ_LEN  = 1024   # covers all seed examples comfortably within 256-token output budget
+MAX_SEQ_LEN  = 1024
+
+# GPT-BigCode attention + MLP projection names (StarCoder architecture).
+# c_attn  = combined QKV (multi-query attention uses a single projection)
+# c_proj  = output projection (attention and MLP share this name)
+# c_fc    = MLP first linear
+LORA_TARGETS = ["c_attn", "c_proj", "c_fc"]
+
+
+def _load_with_unsloth(model_name, max_seq_len, lora_r):
+    """Try Unsloth fast path.  Raises if architecture is unsupported."""
+    from unsloth import FastLanguageModel
+
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name=model_name,
+        max_seq_length=max_seq_len,
+        load_in_4bit=True,
+        dtype=None,
+    )
+    model = FastLanguageModel.get_peft_model(
+        model,
+        r=lora_r,
+        target_modules=LORA_TARGETS,
+        lora_alpha=lora_r,
+        lora_dropout=0.0,
+        bias="none",
+        use_gradient_checkpointing="unsloth",
+        random_state=42,
+    )
+    return model, tokenizer
+
+
+def _load_with_peft(model_name, max_seq_len, lora_r):
+    """Standard HuggingFace + BitsAndBytes + PEFT fallback."""
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+
+    bnb = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_use_double_quant=True,
+    )
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        quantization_config=bnb,
+        device_map="auto",
+    )
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    model = prepare_model_for_kbit_training(model)
+    lora_cfg = LoraConfig(
+        r=lora_r,
+        lora_alpha=lora_r,
+        target_modules=LORA_TARGETS,
+        lora_dropout=0.0,
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
+    model = get_peft_model(model, lora_cfg)
+    return model, tokenizer
 
 
 def main() -> None:
@@ -48,13 +118,8 @@ def main() -> None:
                         help=f"Max sequence length (default: {MAX_SEQ_LEN})")
     args = parser.parse_args()
 
-    # Imports here so the script fails fast with a clear error if deps missing.
     try:
-        from unsloth import FastLanguageModel
-        from unsloth.chat_templates import get_chat_template
-        from datasets import load_dataset
-        from trl import SFTTrainer
-        from transformers import TrainingArguments
+        from transformers import Trainer, TrainingArguments
     except ImportError as exc:
         raise SystemExit(
             f"[ERROR] Missing dependency: {exc}\n"
@@ -63,66 +128,71 @@ def main() -> None:
 
     Path(args.output).mkdir(parents=True, exist_ok=True)
 
-    # ── Load base model in 4-bit ────────────────────────────────────────────────
+    # ── Load model + LoRA ───────────────────────────────────────────────────────
     print(f"Loading {args.model} in 4-bit ...")
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=args.model,
-        max_seq_length=args.max_seq_len,
-        load_in_4bit=True,
-        dtype=None,   # auto-detect
-    )
-
-    # Apply Qwen 2.5 chat template so generation format matches inference.
-    tokenizer = get_chat_template(tokenizer, chat_template="qwen-2.5")
-
-    # ── Attach LoRA adapter ─────────────────────────────────────────────────────
-    model = FastLanguageModel.get_peft_model(
-        model,
-        r=args.lora_r,
-        target_modules=[
-            "q_proj", "v_proj", "k_proj", "o_proj",
-            "gate_proj", "up_proj", "down_proj",
-        ],
-        lora_alpha=args.lora_r,   # alpha = r is a stable default
-        lora_dropout=0.0,
-        bias="none",
-        use_gradient_checkpointing="unsloth",
-        random_state=42,
-    )
+    use_unsloth = False
+    try:
+        model, tokenizer = _load_with_unsloth(args.model, args.max_seq_len, args.lora_r)
+        use_unsloth = True
+        print("  (using Unsloth fast path)")
+    except Exception as exc:
+        print(f"  Unsloth unavailable ({exc!r}), falling back to standard PEFT ...")
+        model, tokenizer = _load_with_peft(args.model, args.max_seq_len, args.lora_r)
 
     # ── Format dataset ──────────────────────────────────────────────────────────
+    # Plain-text completion format to match Ollama inference layout:
+    #   {system_prompt}\n\n{user_prompt}\n{output}<eos>
+    # Built from a plain Python list to avoid dill pickling Unsloth globals.
     print(f"Loading dataset from {args.dataset} ...")
-    raw = load_dataset("json", data_files=args.dataset, split="train")
+    import json as _json
+    from datasets import Dataset
 
-    def _format(batch):
-        texts = []
-        for inst, inp, out in zip(
-            batch["instruction"],
-            batch.get("input", [""] * len(batch["instruction"])),
-            batch["output"],
-        ):
-            user_content = f"{inp}\n\n{inst}" if inp else inst
-            messages = [
-                {"role": "user",      "content": user_content},
-                {"role": "assistant", "content": out},
-            ]
-            text = tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=False
-            )
-            texts.append(text)
-        return {"text": texts}
+    eos = tokenizer.eos_token or "<|endoftext|>"
 
-    dataset = raw.map(_format, batched=True, remove_columns=raw.column_names)
+    with open(args.dataset) as f:
+        records = [_json.loads(line) for line in f if line.strip()]
+
+    print("Tokenizing ...")
+    all_input_ids = []
+    for r in records:
+        inst = r["instruction"]
+        inp  = r.get("input", "")
+        out  = r["output"]
+        text = f"{inst}\n\n{inp}\n{out}{eos}" if inp else f"{inst}\n{out}{eos}"
+        ids = tokenizer(
+            text,
+            truncation=True,
+            max_length=args.max_seq_len,
+            padding=False,
+            return_attention_mask=False,
+        )["input_ids"]
+        all_input_ids.append(ids)
+
+    dataset = Dataset.from_dict({"input_ids": all_input_ids, "labels": all_input_ids})
     print(f"Dataset size: {len(dataset)} examples")
 
     # ── Train ───────────────────────────────────────────────────────────────────
-    trainer = SFTTrainer(
+    import torch
+    from torch.nn.utils.rnn import pad_sequence
+
+    pad_id = tokenizer.pad_token_id or tokenizer.eos_token_id
+
+    def collate(batch):
+        ids = pad_sequence(
+            [torch.tensor(ex["input_ids"], dtype=torch.long) for ex in batch],
+            batch_first=True, padding_value=pad_id,
+        )
+        lbl = pad_sequence(
+            [torch.tensor(ex["labels"], dtype=torch.long) for ex in batch],
+            batch_first=True, padding_value=-100,
+        )
+        return {"input_ids": ids, "labels": lbl, "attention_mask": (ids != pad_id).long()}
+
+    trainer = Trainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=dataset,
-        dataset_text_field="text",
-        max_seq_length=args.max_seq_len,
-        dataset_num_proc=2,
+        data_collator=collate,
         args=TrainingArguments(
             output_dir=args.output,
             num_train_epochs=args.epochs,
@@ -139,15 +209,21 @@ def main() -> None:
             lr_scheduler_type="linear",
             report_to="none",
             seed=42,
+            dataloader_num_workers=0,
         ),
     )
 
     print("Starting training ...")
     trainer.train()
 
+    # ── Save checkpoint + metadata ──────────────────────────────────────────────
     final_dir = f"{args.output}/final"
     model.save_pretrained(final_dir)
     tokenizer.save_pretrained(final_dir)
+
+    meta = {"base_model": args.model, "use_unsloth": use_unsloth}
+    json.dump(meta, open(f"{final_dir}/training_meta.json", "w"), indent=2)
+
     print(f"\nCheckpoint saved to {final_dir}")
     print("Next step: python training/merge_export.py")
 

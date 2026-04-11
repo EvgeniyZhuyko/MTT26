@@ -8,5 +8,7 @@ __pycache__/
 *.ipynb_checkpoints/
 training/checkpoints/
 training/merged/
+training/_gguf_tmp/
 data/raw/*.txt
 unsloth_compiled_cache/
+llama.cpp/
