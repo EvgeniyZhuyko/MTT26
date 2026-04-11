@@ -55,7 +55,7 @@ On subsequent runs everything is cached and startup takes under a minute.
 
 **Ready when you see:**
 ```
-agent_1  | [entrypoint] Starting API server on :8080 ...
+agent-1  | INFO:     Application startup complete.
 ```
 
 ---

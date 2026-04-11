@@ -2,7 +2,7 @@
 
 Generates Lua scripts for the **Octapi LowCode** platform from natural-language
 task descriptions (Russian or English).  
-Runs fully locally via a fine-tuned `nuprl/MultiPLCoder-1b` model served by Ollama.
+Runs fully locally via a fine-tuned [`andreysitaev/hkt_octapi_lua_mpl`](https://ollama.com/andreysitaev/hkt_octapi_lua_mpl) model served by Ollama.
 
 ---
 
@@ -10,37 +10,30 @@ Runs fully locally via a fine-tuned `nuprl/MultiPLCoder-1b` model served by Olla
 
 ### Prerequisites
 - Docker + Docker Compose
-- NVIDIA GPU with ≥4 GB VRAM + [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)  
-  *(CPU-only: remove the `deploy` block from `compose.yml` — generation will be slower)*
-- The fine-tuned GGUF file at `training/localscript-q4_k_m.gguf`
+- **GPU (recommended):** NVIDIA GPU with ≥4 GB VRAM + [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+- **CPU-only / macOS:** remove the `deploy` block from `compose.yml` before starting
 
-### 1. Get the model
+See platform-specific guides:
+- [macOS (native, no Docker)](README_RUN_IN_MAC_OS.md)
+- [Ubuntu — NVIDIA GPU](README_RUN_IN_UBUNTU_GPU.md)
+- [Ubuntu — CPU only](README_RUN_IN_UBUNTU_CPU.md)
 
-Either run training yourself:
-
-```bash
-pip install -r requirements-train.txt
-python training/train.py          # fine-tune (~5 min on T4 GPU)
-python training/merge_export.py   # export to GGUF
-```
-
-Or open `training/localscript_train.ipynb` in Google Colab (T4 GPU, free tier),
-run all cells, and download `localscript-q4_k_m.gguf` into `training/`.
-
-### 2. Start the stack
+### 1. Start the stack
 
 ```bash
 docker compose up --build
 ```
 
-The first start registers the model with Ollama (~30 s).  
-The API is ready when you see:
+The first run builds the agent image and pulls the fine-tuned model (~800 MB) from
+Ollama Hub automatically. Subsequent starts use the cached volume and take under 30 s.
+
+**The API is ready when you see:**
 
 ```
-agent_1  | [entrypoint] Starting API server on :8080 ...
+agent-1  | INFO:     Application startup complete.
 ```
 
-### 3. Test
+### 2. Test
 
 ```bash
 # Health check
@@ -57,8 +50,10 @@ curl -s -X POST http://localhost:8080/generate \
 # Generate a Lua script (Russian)
 curl -s -X POST http://localhost:8080/generate \
   -H "Content-Type: application/json" \
-  -d '{"prompt": "Напиши Луа скрипт для получения последнего email из списка"}' \
-  | python3 -m json.tool
+  -d '{
+    "prompt": "Увеличь счётчик попыток на 1",
+    "context": {"wf": {"vars": {"try_count_n": 3}}}
+  }' | python3 -m json.tool
 ```
 
 **Response schema:**
@@ -136,7 +131,7 @@ User prompt
  Analyst node ─── checks if the task is unambiguous
      │
      ▼
- Generator node ── generates Lua via MultiPLCoder-1b (Ollama)
+ Generator node ── generates Lua via Ollama
      │
      ▼
  Critic node ───── validates with luacheck
@@ -147,8 +142,8 @@ User prompt
 output                          Generator node
 ```
 
-- **Model**: `nuprl/MultiPLCoder-1b` fine-tuned with QLoRA on 314 Octapi Lua examples
-- **Runtime**: Ollama (GGUF Q4\_K\_M, ~700 MB)
+- **Model**: `andreysitaev/hkt_octapi_lua_mpl` — fine-tuned with QLoRA on 314 Octapi Lua examples
+- **Runtime**: Ollama (GGUF Q4\_K\_M, ~800 MB)
 - **Evaluation params**: `num_ctx=4096`, `num_predict=256`, `temperature=0.1`, `top_p=0.9`
 - **Validation**: luacheck static analysis
 
@@ -160,6 +155,8 @@ output                          Generator node
 make setup          # create .venv, install runtime + dev deps
 make check          # verify imports + luacheck
 make run PROMPT="..." CTX='{"wf":{...}}'
+make synthesize     # generate deterministic training data (no LLM required)
+make merge-data     # merge all JSONL datasets into data/train.jsonl
 make train          # QLoRA fine-tuning (requires CUDA GPU)
 make export-model   # merge LoRA adapter + export to GGUF
 make register-model # register GGUF with local Ollama

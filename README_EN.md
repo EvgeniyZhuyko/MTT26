@@ -2,7 +2,7 @@
 
 Generates Lua scripts for the **Octapi LowCode** platform from natural-language
 task descriptions (Russian or English).
-Fine-tuned `nuprl/MultiPLCoder-1b` model served via Ollama, wrapped in a
+Fine-tuned [`andreysitaev/hkt_octapi_lua_mpl`](https://ollama.com/andreysitaev/hkt_octapi_lua_mpl) model served via Ollama, wrapped in a
 FastAPI + LangGraph agentic loop with luacheck validation.
 
 ---
@@ -12,11 +12,11 @@ FastAPI + LangGraph agentic loop with luacheck validation.
 | Requirement | Notes |
 |---|---|
 | Docker + Docker Compose | Any recent version |
-| NVIDIA GPU with ≥4 GB VRAM | CPU-only: see note below |
-| [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) | Required for GPU passthrough |
+| NVIDIA GPU with ≥4 GB VRAM | Recommended; CPU-only: see note below |
+| [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) | Required for GPU passthrough on Linux |
 
-**CPU-only fallback:** remove the `deploy` block from `compose.yml` before
-starting. Generation will work but will be slower.
+**CPU-only / macOS fallback:** remove the `deploy` block from `compose.yml` before
+starting. Generation will work but will be slower (~5–20 s per request).
 
 ---
 
@@ -36,7 +36,7 @@ On subsequent runs everything is cached and startup takes under 30 seconds.
 **The stack is ready when you see:**
 
 ```
-agent_1  | [entrypoint] Starting API server on :8080 ...
+agent-1  | INFO:     Application startup complete.
 ```
 
 ---
@@ -151,7 +151,7 @@ POST /generate
   Analyst node ── decides if the task is unambiguous
       │
       ▼
-  Generator node ── calls MultiPLCoder-1b via Ollama → raw Lua
+  Generator node ── calls andreysitaev/hkt_octapi_lua_mpl via Ollama → raw Lua
       │
       ▼
   Critic node ── runs luacheck; if errors, retries (up to max_iter)
@@ -160,7 +160,7 @@ POST /generate
   JSON response
 ```
 
-- **Model:** `nuprl/MultiPLCoder-1b` fine-tuned with QLoRA on 314 Octapi Lua examples
-- **Runtime:** Ollama (GGUF Q4\_K\_M, ~755 MB)
+- **Model:** `andreysitaev/hkt_octapi_lua_mpl` — fine-tuned with QLoRA on 314 Octapi Lua examples
+- **Runtime:** Ollama (GGUF Q4\_K\_M, ~800 MB)
 - **Inference params:** `num_ctx=4096`, `num_predict=256`, `temperature=0.1`, `top_p=0.9`
 - **Validation:** luacheck static analysis

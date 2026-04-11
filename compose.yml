@@ -7,7 +7,8 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
-    # Remove the `deploy` block if you don't have an NVIDIA GPU.
+    # GPU passthrough for NVIDIA on Linux.
+    # macOS (Rancher/Docker Desktop) and CPU-only Ubuntu: remove the deploy block.
     deploy:
       resources:
         reservations:
