@@ -44,6 +44,8 @@ def main() -> None:
                         help="Learning rate (default: 2e-4)")
     parser.add_argument("--lora-r", type=int, default=16, dest="lora_r",
                         help="LoRA rank r (default: 16)")
+    parser.add_argument("--max-seq-len", type=int, default=MAX_SEQ_LEN, dest="max_seq_len",
+                        help=f"Max sequence length (default: {MAX_SEQ_LEN})")
     args = parser.parse_args()
 
     # Imports here so the script fails fast with a clear error if deps missing.
@@ -65,7 +67,7 @@ def main() -> None:
     print(f"Loading {args.model} in 4-bit ...")
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=args.model,
-        max_seq_length=MAX_SEQ_LEN,
+        max_seq_length=args.max_seq_len,
         load_in_4bit=True,
         dtype=None,   # auto-detect
     )
@@ -119,7 +121,7 @@ def main() -> None:
         tokenizer=tokenizer,
         train_dataset=dataset,
         dataset_text_field="text",
-        max_seq_length=MAX_SEQ_LEN,
+        max_seq_length=args.max_seq_len,
         dataset_num_proc=2,
         args=TrainingArguments(
             output_dir=args.output,
@@ -128,7 +130,8 @@ def main() -> None:
             gradient_accumulation_steps=args.grad_accum,
             warmup_steps=5,
             learning_rate=args.lr,
-            fp16=True,
+            fp16=False,
+            bf16=True,
             logging_steps=10,
             save_strategy="epoch",
             optim="adamw_8bit",
