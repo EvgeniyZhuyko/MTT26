@@ -12,27 +12,7 @@ Generation is slower (~5–20 s per request) but fully functional.
 
 ---
 
-## Step 1 — Get the model file
-
-The GGUF is not in the repository. Place `training/localscript-q4_k_m.gguf`
-(755 MB) in the `training/` directory before starting Docker.
-
-**Option A — download from the person who trained it.**
-
-**Option B — run the Colab notebook.**
-Open `training/localscript_train.ipynb` in Google Colab (T4 GPU, free tier),
-run all cells, download `localscript-q4_k_m.gguf` into `training/`.
-
-**Option C — train locally (requires a CUDA GPU on another machine).**
-```bash
-pip install -r requirements-train.txt
-python training/train.py
-python training/merge_export.py
-```
-
----
-
-## Step 2 — Remove the GPU block from compose.yml
+## Step 1 — Remove the GPU block from compose.yml
 
 Open `compose.yml` and delete the `deploy` section under the `ollama` service
 so it looks like this:
@@ -47,7 +27,7 @@ so it looks like this:
     restart: unless-stopped
 ```
 
-The four lines to remove:
+The lines to remove:
 ```yaml
     deploy:
       resources:
@@ -60,14 +40,18 @@ The four lines to remove:
 
 ---
 
-## Step 3 — Start the stack
+## Step 2 — Start the stack
 
 ```bash
 docker compose up --build
 ```
 
-First run downloads the `ollama/ollama` image and builds the agent image —
-allow 3–5 minutes. Subsequent starts take under a minute.
+The first run:
+1. Downloads the `ollama/ollama` image and builds the agent image (~3–5 min)
+2. Pulls the fine-tuned model automatically from Ollama Hub:
+   [`andreysitaev/hkt_octapi_lua_mpl`](https://ollama.com/andreysitaev/hkt_octapi_lua_mpl) (~800 MB, once)
+
+On subsequent runs everything is cached and startup takes under a minute.
 
 **Ready when you see:**
 ```
@@ -76,7 +60,7 @@ agent_1  | [entrypoint] Starting API server on :8080 ...
 
 ---
 
-## Step 4 — Test
+## Step 3 — Test
 
 ```bash
 # Health check
@@ -111,4 +95,4 @@ docker compose down
 ```
 
 Model weights are cached in the `ollama_data` Docker volume and survive
-restarts — model registration is skipped on the second run.
+restarts — the pull is skipped on the second run.

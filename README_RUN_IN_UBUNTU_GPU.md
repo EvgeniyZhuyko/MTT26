@@ -36,34 +36,7 @@ docker run --rm --gpus all nvidia/cuda:12.0-base-ubuntu22.04 nvidia-smi
 
 ---
 
-## Step 1 — Get the model file
-
-The GGUF is not in the repository. Place `training/localscript-q4_k_m.gguf`
-(755 MB) in the `training/` directory before starting Docker.
-
-**Option A — download from the person who trained it.**
-
-**Option B — run the Colab notebook.**
-Open `training/localscript_train.ipynb` in Google Colab (T4 GPU, free tier),
-run all cells, download `localscript-q4_k_m.gguf` into `training/`.
-
-**Option C — train locally on this machine.**
-```bash
-pip install -r requirements-train.txt
-python training/train.py          # ~5 min on a T4-class GPU
-python training/merge_export.py   # merges LoRA + exports to GGUF
-```
-
-> `merge_export.py` needs llama.cpp built once:
-> ```bash
-> git clone https://github.com/ggerganov/llama.cpp.git
-> pip install -r llama.cpp/requirements.txt
-> cd llama.cpp && cmake -B build && cmake --build build --target llama-quantize -j$(nproc)
-> ```
-
----
-
-## Step 2 — Start the stack
+## Step 1 — Start the stack
 
 `compose.yml` already has the GPU block enabled — no changes needed.
 
@@ -71,8 +44,12 @@ python training/merge_export.py   # merges LoRA + exports to GGUF
 docker compose up --build
 ```
 
-First run downloads the `ollama/ollama` image and builds the agent image —
-allow 3–5 minutes. Subsequent starts take under a minute.
+The first run:
+1. Downloads the `ollama/ollama` image and builds the agent image (~3–5 min)
+2. Pulls the fine-tuned model automatically from Ollama Hub:
+   [`andreysitaev/hkt_octapi_lua_mpl`](https://ollama.com/andreysitaev/hkt_octapi_lua_mpl) (~800 MB, once)
+
+On subsequent runs everything is cached and startup takes under a minute.
 
 **Ready when you see:**
 ```
@@ -81,7 +58,7 @@ agent_1  | [entrypoint] Starting API server on :8080 ...
 
 ---
 
-## Step 3 — Test
+## Step 2 — Test
 
 ```bash
 # Health check
@@ -116,7 +93,7 @@ docker compose down
 ```
 
 Model weights are cached in the `ollama_data` Docker volume and survive
-restarts — model registration is skipped on the second run.
+restarts — the pull is skipped on the second run.
 
 ---
 
@@ -125,10 +102,6 @@ restarts — model registration is skipped on the second run.
 **`docker: Error response from daemon: could not select device driver "nvidia"`**
 The NVIDIA Container Toolkit is not configured. Re-run the setup from the
 Prerequisites section and restart Docker.
-
-**`[entrypoint] WARNING: GGUF not found`**
-The `training/localscript-q4_k_m.gguf` file is missing. Follow Step 1.
-The API will start but `/generate` will return 503 until the model is registered.
 
 **Ollama keeps restarting**
 Check GPU memory: `nvidia-smi`. The 1B Q4_K_M model needs ~1.5 GB VRAM —

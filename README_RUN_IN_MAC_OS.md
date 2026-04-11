@@ -20,48 +20,21 @@ brew install ollama luacheck
 
 ---
 
-## Step 1 — Get the model file
-
-The GGUF is not in the repository. Obtain `training/localscript-q4_k_m.gguf`
-by one of these methods:
-
-**Option A — download from the person who trained it.**
-Copy the 755 MB file into the `training/` directory of this repo.
-
-**Option B — run the Colab notebook yourself.**
-Open `training/localscript_train.ipynb` in Google Colab with a T4 GPU runtime
-(free tier), run all cells, download `localscript-q4_k_m.gguf`, place it in
-`training/`.
-
-**Option C — train locally (requires any CUDA GPU, not typical on Mac).**
-```bash
-pip install -r requirements-train.txt
-python training/train.py
-python training/merge_export.py
-```
-
----
-
-## Step 2 — Register the model with Ollama
+## Step 1 — Pull the model
 
 ```bash
-# Start the Ollama background service (if not already running)
-ollama serve &
-
-# Register the fine-tuned model
-cd training
-ollama create localscript -f Modelfile
-cd ..
+ollama pull andreysitaev/hkt_octapi_lua_mpl
+ollama cp andreysitaev/hkt_octapi_lua_mpl localscript:latest
 
 # Verify
 ollama list
 # NAME                  ID              SIZE    MODIFIED
-# localscript:latest    ...             755 MB  just now
+# localscript:latest    ...             793 MB  just now
 ```
 
 ---
 
-## Step 3 — Set up Python environment
+## Step 2 — Set up Python environment
 
 ```bash
 python3 -m venv .venv
@@ -71,7 +44,7 @@ pip install -r requirements.txt fastapi "uvicorn[standard]"
 
 ---
 
-## Step 4 — Start the API server
+## Step 3 — Start the API server
 
 ```bash
 source .venv/bin/activate
@@ -86,7 +59,7 @@ INFO:     Uvicorn running on http://127.0.0.1:8080
 
 ---
 
-## Step 5 — Test
+## Step 4 — Test
 
 ```bash
 # Health check

@@ -20,48 +20,18 @@ starting. Generation will work but will be slower.
 
 ---
 
-## Step 1 — Get the fine-tuned model file
-
-The GGUF file is not stored in the repository (it is ~755 MB and git-ignored).
-You need to produce it once before starting Docker.
-
-### Option A — Train locally (requires a CUDA GPU)
-
-```bash
-pip install -r requirements-train.txt
-python training/train.py          # QLoRA fine-tuning, ~5 min on T4
-python training/merge_export.py   # merge LoRA + export to GGUF
-```
-
-This writes `training/localscript-q4_k_m.gguf`.
-
-> **Note:** `merge_export.py` uses llama.cpp for the GGUF step.  
-> Build it once before running:
-> ```bash
-> git clone https://github.com/ggerganov/llama.cpp.git
-> pip install -r llama.cpp/requirements.txt
-> cd llama.cpp && cmake -B build && cmake --build build --target llama-quantize -j$(nproc)
-> ```
-
-### Option B — Run the Colab notebook (no local GPU needed)
-
-Open `training/localscript_train.ipynb` in Google Colab with a **T4 GPU**
-runtime (free tier), run all cells, then download the generated
-`localscript-q4_k_m.gguf` and place it in the `training/` directory.
-
----
-
-## Step 2 — Start the stack
+## Step 1 — Start the stack
 
 ```bash
 docker compose up --build
 ```
 
-The first run downloads the `ollama/ollama` image and builds the agent image
-(Python 3.13 + luacheck + Ollama CLI + Python dependencies).  This takes
-roughly 2–3 minutes on a fresh machine.
+The first run:
+1. Downloads the `ollama/ollama` image and builds the agent image (~2–3 min)
+2. Pulls the fine-tuned model automatically from Ollama Hub:
+   [`andreysitaev/hkt_octapi_lua_mpl`](https://ollama.com/andreysitaev/hkt_octapi_lua_mpl) (~800 MB, once)
 
-On subsequent runs the images are cached and startup takes under 30 seconds.
+On subsequent runs everything is cached and startup takes under 30 seconds.
 
 **The stack is ready when you see:**
 
@@ -71,7 +41,7 @@ agent_1  | [entrypoint] Starting API server on :8080 ...
 
 ---
 
-## Step 3 — Test
+## Step 2 — Test
 
 ### Health check
 
