@@ -7,15 +7,17 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
-    # GPU passthrough for NVIDIA on Linux.
-    # macOS (Rancher/Docker Desktop) and CPU-only Ubuntu: remove the deploy block.
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # Uncomment the block below for NVIDIA GPU passthrough on Linux.
+    # Required: NVIDIA driver ≥525 + nvidia-container-toolkit.
+    # macOS and CPU-only Ubuntu: leave this commented out.
+    #
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
 
   agent:
     build: .
@@ -28,6 +30,16 @@ services:
       - ./training:/app/training:ro
     depends_on:
       - ollama
+    restart: on-failure
+
+  chat:
+    build: ./chat
+    ports:
+      - "8081:8081"
+    environment:
+      - AGENT_URL=http://agent:8080
+    depends_on:
+      - agent
     restart: on-failure
 
 volumes:

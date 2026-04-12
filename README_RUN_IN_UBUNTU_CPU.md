@@ -12,35 +12,7 @@ Generation is slower (~5–20 s per request) but fully functional.
 
 ---
 
-## Step 1 — Remove the GPU block from compose.yml
-
-Open `compose.yml` and delete the `deploy` section under the `ollama` service
-so it looks like this:
-
-```yaml
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-```
-
-The lines to remove:
-```yaml
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-```
-
----
-
-## Step 2 — Start the stack
+## Step 1 — Start the stack
 
 ```bash
 docker compose up --build
@@ -61,6 +33,8 @@ agent-1  | INFO:     Application startup complete.
 ---
 
 ## Step 3 — Test
+
+Open the chat UI at **http://localhost:8081** or use curl:
 
 ```bash
 # Health check

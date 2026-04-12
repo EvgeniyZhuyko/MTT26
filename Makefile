@@ -18,7 +18,8 @@ COUNT ?= 50
 
 .PHONY: setup check clean ollama-pull run lint validate \
         generate-data convert-data auto-data synthesize merge-data \
-        train export-model register-model eval
+        train export-model register-model eval \
+        chat-build
 
 # ── Setup ──────────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,12 @@ clean:
 ## Usage: make ollama-pull MODEL=<tag>
 ollama-pull:
 	ollama pull $(MODEL)
+
+# ── Chat app ───────────────────────────────────────────────────────────────────
+
+## chat-build: build the chat Docker image
+chat-build:
+	docker build -t localscript-chat ./chat
 
 # ── Run ────────────────────────────────────────────────────────────────────────
 

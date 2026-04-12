@@ -15,8 +15,8 @@ FastAPI + LangGraph agentic loop with luacheck validation.
 | NVIDIA GPU with ≥4 GB VRAM | Recommended; CPU-only: see note below |
 | [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) | Required for GPU passthrough on Linux |
 
-**CPU-only / macOS fallback:** remove the `deploy` block from `compose.yml` before
-starting. Generation will work but will be slower (~5–20 s per request).
+**CPU-only / macOS:** works out of the box — the GPU `deploy` block in `compose.yml`
+is commented out. Linux NVIDIA GPU users: uncomment it for full speed.
 
 ---
 
@@ -43,7 +43,12 @@ agent-1  | INFO:     Application startup complete.
 
 ## Step 2 — Test
 
-### Health check
+### Chat UI (browser)
+
+Open **http://localhost:8081** in a browser. Type a prompt and press Send —
+the generated Lua code appears with a Copy button.
+
+### Health check (API)
 
 ```bash
 curl http://localhost:8080/health

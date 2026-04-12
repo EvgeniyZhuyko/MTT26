@@ -14,22 +14,7 @@ Intel runs CPU-only — responses in 5–20 s depending on the chip.
   — choose **dockerd (moby)** as the container runtime
 - No NVIDIA GPU needed; Ollama inside the container runs CPU-only
 
-### Step 1 — Remove the GPU block
-
-Open `compose.yml` and delete the `deploy` section (macOS doesn't support NVIDIA
-passthrough), so the `ollama` service looks like:
-
-```yaml
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-```
-
-### Step 2 — Start
+### Step 1 — Start
 
 ```bash
 docker compose up --build
@@ -42,6 +27,8 @@ agent-1  | INFO:     Application startup complete.
 ```
 
 ### Step 3 — Test
+
+Open the chat UI at **http://localhost:8081** or use curl:
 
 ```bash
 curl http://localhost:8080/health

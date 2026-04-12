@@ -36,9 +36,21 @@ docker run --rm --gpus all nvidia/cuda:12.0-base-ubuntu22.04 nvidia-smi
 
 ---
 
-## Step 1 — Start the stack
+## Step 1 — Uncomment the GPU block in compose.yml
 
-`compose.yml` already has the GPU block enabled — no changes needed.
+Open `compose.yml` and uncomment the `deploy` section under the `ollama` service:
+
+```yaml
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+```
+
+## Step 2 — Start the stack
 
 ```bash
 docker compose up --build
@@ -59,6 +71,8 @@ agent-1  | INFO:     Application startup complete.
 ---
 
 ## Step 2 — Test
+
+Open the chat UI at **http://localhost:8081** or use curl:
 
 ```bash
 # Health check

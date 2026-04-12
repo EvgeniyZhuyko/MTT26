@@ -10,8 +10,8 @@ Runs fully locally via a fine-tuned [`andreysitaev/hkt_octapi_lua_mpl`](https://
 
 ### Prerequisites
 - Docker + Docker Compose
-- **GPU (recommended):** NVIDIA GPU with ≥4 GB VRAM + [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
-- **CPU-only / macOS:** remove the `deploy` block from `compose.yml` before starting
+- **GPU (recommended):** NVIDIA GPU with ≥4 GB VRAM + [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) — uncomment the `deploy` block in `compose.yml`
+- **CPU-only / macOS:** no changes needed, works out of the box
 
 See platform-specific guides:
 - [macOS (native, no Docker)](README_RUN_IN_MAC_OS.md)
@@ -68,6 +68,19 @@ curl -s -X POST http://localhost:8080/generate \
 ```
 
 Interactive API docs: `http://localhost:8080/docs`
+
+---
+
+## Chat UI
+
+A browser-based chat interface is included. With the full stack running:
+
+```
+http://localhost:8081
+```
+
+Type a prompt in natural language (Russian or English), press **Send**, and the
+generated Lua code appears in a code block with a Copy button.
 
 ---
 
