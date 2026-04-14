@@ -1,0 +1,42 @@
+[
+    {
+        "input": "Context:\n{\n  \"wf\": {\n    \"vars\": {\n      \"primary_phone\": null,\n      \"mobile_phone\": \"+49-151-12345678\",\n      \"backup_phone\": \"+49-30-555555\"\n    },\n    \"initVariables\": {}\n  }\n}\n\nTask: Write an Octapi Lua script that returns the first non-nil value from these candidate fields in wf.vars, in this order: primary_phone, mobile_phone, backup_phone. If all are nil, return nil. Follow Octapi sandbox rules.",
+        "output": "local candidateFields = _utils.array.new(\"primary_phone\", \"mobile_phone\", \"backup_phone\")\nlocal result = nil\n\nfor i = 1, #candidateFields do\n    local fieldName = candidateFields[i]\n    local fieldValue = wf.vars[fieldName]\n\n    if fieldValue ~= nil then\n        result = fieldValue\n        break\n    end\nend\n\nreturn result"
+    },
+    {
+        "input": "Context:\n{\n  \"wf\": {\n    \"vars\": {\n      \"email_primary\": null,\n      \"email_secondary\": null,\n      \"email_backup\": \"user@example.com\"\n    },\n    \"initVariables\": {}\n  }\n}\n\nTask: Write an Octapi Lua script that returns the first non-nil value from these candidate fields in wf.vars, in this order: email_primary, email_secondary, email_backup. If all are nil, return nil.",
+        "output": "local candidateFields = _utils.array.new(\"email_primary\", \"email_secondary\", \"email_backup\")\nlocal result = nil\n\nfor i = 1, #candidateFields do\n    local fieldName = candidateFields[i]\n    local fieldValue = wf.vars[fieldName]\n\n    if fieldValue ~= nil then\n        result = fieldValue\n        break\n    end\nend\n\nreturn result"
+    },
+    {
+        "input": "Context:\n{\n  \"wf\": {\n    \"vars\": {\n      \"city\": null,\n      \"state\": \"Berlin\",\n      \"country\": \"Germany\"\n    },\n    \"initVariables\": {}\n  }\n}\n\nTask: Напиши Lua-скрипт для Octapi, который возвращает первое ненулевое значение из списка wf.vars: city, state, country (в указанном порядке). Если все значения nil — вернуть nil.",
+        "output": "local candidateFields = _utils.array.new(\"city\", \"state\", \"country\")\nlocal result = nil\n\nfor i = 1, #candidateFields do\n    local fieldName = candidateFields[i]\n    local fieldValue = wf.vars[fieldName]\n\n    if fieldValue ~= nil then\n        result = fieldValue\n        break\n    end\nend\n\nreturn result"
+    },
+    {
+        "input": "Task: Write an Octapi Lua script that returns the first non-nil value from wf.vars among: address_line1, address_line2, address_line3. If none exist, return nil.",
+        "output": "local candidateFields = _utils.array.new(\"address_line1\", \"address_line2\", \"address_line3\")\nlocal result = nil\n\nfor i = 1, #candidateFields do\n    local fieldName = candidateFields[i]\n    local fieldValue = wf.vars[fieldName]\n\n    if fieldValue ~= nil then\n        result = fieldValue\n        break\n    end\nend\n\nreturn result"
+    },
+    {
+        "input": "Context:\n{\n  \"wf\": {\n    \"vars\": {\n      \"company_name\": null,\n      \"legal_name\": null,\n      \"display_name\": \"Acme Corp\"\n    },\n    \"initVariables\": {}\n  }\n}\n\nTask: Create an Octapi Lua script that returns the first non-nil value from wf.vars in order: company_name, legal_name, display_name. Return nil if all are nil.",
+        "output": "local candidateFields = _utils.array.new(\"company_name\", \"legal_name\", \"display_name\")\nlocal result = nil\n\nfor i = 1, #candidateFields do\n    local fieldName = candidateFields[i]\n    local fieldValue = wf.vars[fieldName]\n\n    if fieldValue ~= nil then\n        result = fieldValue\n        break\n    end\nend\n\nreturn result"
+    },
+    {
+        "input": "Task: Напиши Lua-скрипт для Octapi, который возвращает первое ненулевое значение из wf.vars: tax_id, vat_id, registration_id. Порядок проверки важен. Если все значения отсутствуют — вернуть nil.",
+        "output": "local candidateFields = _utils.array.new(\"tax_id\", \"vat_id\", \"registration_id\")\nlocal result = nil\n\nfor i = 1, #candidateFields do\n    local fieldName = candidateFields[i]\n    local fieldValue = wf.vars[fieldName]\n\n    if fieldValue ~= nil then\n        result = fieldValue\n        break\n    end\nend\n\nreturn result"
+    },
+    {
+        "input": "Context:\n{\n  \"wf\": {\n    \"vars\": {\n      \"first_name\": null,\n      \"nickname\": \"Andy\",\n      \"username\": \"asitaev\"\n    },\n    \"initVariables\": {}\n  }\n}\n\nTask: Write an Octapi Lua script that returns the first non-nil value from wf.vars in this order: first_name, nickname, username. If all values are nil, return nil.",
+        "output": "local candidateFields = _utils.array.new(\"first_name\", \"nickname\", \"username\")\nlocal result = nil\n\nfor i = 1, #candidateFields do\n    local fieldName = candidateFields[i]\n    local fieldValue = wf.vars[fieldName]\n\n    if fieldValue ~= nil then\n        result = fieldValue\n        break\n    end\nend\n\nreturn result"
+    },
+    {
+        "input": "Context:\n{\n  \"wf\": {\n    \"vars\": {\n      \"preferred_language\": null,\n      \"locale\": null,\n      \"default_language\": \"en\"\n    },\n    \"initVariables\": {}\n  }\n}\n\nTask: Напиши Lua-скрипт для Octapi, который возвращает первое ненулевое значение из wf.vars: preferred_language, locale, default_language. Если все значения nil — вернуть nil.",
+        "output": "local candidateFields = _utils.array.new(\"preferred_language\", \"locale\", \"default_language\")\nlocal result = nil\n\nfor i = 1, #candidateFields do\n    local fieldName = candidateFields[i]\n    local fieldValue = wf.vars[fieldName]\n\n    if fieldValue ~= nil then\n        result = fieldValue\n        break\n    end\nend\n\nreturn result"
+    },
+    {
+        "input": "Task: Write an Octapi Lua script that returns the first non-nil value from wf.vars among these fields: delivery_date, pickup_date, created_at. Respect the order. Return nil if all are nil.",
+        "output": "local candidateFields = _utils.array.new(\"delivery_date\", \"pickup_date\", \"created_at\")\nlocal result = nil\n\nfor i = 1, #candidateFields do\n    local fieldName = candidateFields[i]\n    local fieldValue = wf.vars[fieldName]\n\n    if fieldValue ~= nil then\n        result = fieldValue\n        break\n    end\nend\n\nreturn result"
+    },
+    {
+        "input": "Context:\n{\n  \"wf\": {\n    \"vars\": {\n      \"driver_id\": null,\n      \"carrier_id\": \"c-123\",\n      \"fallback_id\": \"f-999\"\n    },\n    \"initVariables\": {}\n  }\n}\n\nTask: Create an Octapi Lua script that returns the first non-nil value from wf.vars in order: driver_id, carrier_id, fallback_id. If none exist, return nil.",
+        "output": "local candidateFields = _utils.array.new(\"driver_id\", \"carrier_id\", \"fallback_id\")\nlocal result = nil\n\nfor i = 1, #candidateFields do\n    local fieldName = candidateFields[i]\n    local fieldValue = wf.vars[fieldName]\n\n    if fieldValue ~= nil then\n        result = fieldValue\n        break\n    end\nend\n\nreturn result"
+    }
+]

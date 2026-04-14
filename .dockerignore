@@ -1,0 +1,17 @@
+.venv
+__pycache__
+*.pyc
+*.pyo
+.git
+.gitignore
+unsloth_compiled_cache/
+training/checkpoints/
+training/merged/
+data/raw/
+*.ipynb_checkpoints/
+compose.yml
+Dockerfile
+.dockerignore
+specs/
+specs_russian/
+README.md

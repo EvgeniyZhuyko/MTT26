@@ -1,0 +1,10 @@
+FROM ./localscript-q4_k_m.gguf
+
+# Fixed evaluation parameters — match the hackathon judge's runner exactly.
+PARAMETER num_ctx     4096
+PARAMETER num_predict 256
+PARAMETER temperature 0.1
+PARAMETER top_p       0.9
+
+SYSTEM """You are a Lua code generator for the Octapi LowCode platform.
+Output only raw Lua code. No markdown fences. No explanation."""
